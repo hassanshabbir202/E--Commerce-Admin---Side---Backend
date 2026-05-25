@@ -1,3 +1,4 @@
+// routes\categoryRoutes.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -42,7 +43,7 @@ const upload = multer({
 router.post('/create', upload.single('thumbnail'), (req, res) => {
   try {
     const { name, status, type, googleCategory } = req.body;
-    const thumbnail = req.file ? req.file.path : null;
+    const thumbnail = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
     if (!name || !type || !googleCategory) {
       return res.status(400).json({
@@ -139,7 +140,7 @@ router.put('/update/:id', upload.single('thumbnail'), (req, res) => {
 
     if (req.file) {
       sql += `, thumbnail=?`;
-      values.push(req.file.path);
+      values.push(req.file.path.replace(/\\/g, "/"));
     }
 
     sql += ` WHERE id=?`;
@@ -159,7 +160,9 @@ router.put('/update/:id', upload.single('thumbnail'), (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: 'Server error',
-      error,
+      error : error.message,
     });
   }
 });
+
+module.exports = router;
