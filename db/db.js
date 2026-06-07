@@ -12,21 +12,15 @@ const db = mysql.createPool({
   queueLimit: 0
 });
 
-db.getConnection((err, conn)=>{
-  if(err){
-    console.error("DB Connection error:", err.message);
-  }else{
-    console.log("MySQL Pool Connected Succesfully!");
+db.getConnection((err, conn) => {
+  if (err) {
+    console.error("❌ DB Connection error:", err.message);
+    console.error("🔍 Attempting to connect to host:", process.env.DB_HOST);
+  } else {
+    console.log("✅ MySQL Pool Connected Successfully!");
+    console.log("🚀 Connected to DB:", process.env.DB_NAME, "at", process.env.DB_HOST);
     conn.release();
   }
 });
-
-// db.connect((err) => {
-//   if (err) {
-//     console.log("DB connection error:", err);
-//   } else {
-//     console.log("MySQL Connected");
-//   }
-// });
 
 module.exports = db;

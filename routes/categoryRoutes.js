@@ -16,7 +16,7 @@ if (!fs.existsSync(categoryUploadPath)) {
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "categoryUploadPath");
+    cb(null, categoryUploadPath);
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
@@ -49,7 +49,7 @@ const upload = multer({
 router.post("/create", upload.single("image"), (req, res) => {
   try {
     const { name, isactive, busniness_id, description, sort } = req.body;
-    const thumbnail = req.file ? req.file.path.replace(/\\/g, "/") : null;
+    const imagePath = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
     if (!name) {
       return res.status(400).json({
@@ -58,7 +58,7 @@ router.post("/create", upload.single("image"), (req, res) => {
     }
 
     const sql = `
-      INSERT INTO categories 
+      INSERT INTO product_collection 
       (name, isactive, isdeleted, business_id, description, sort, image)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
@@ -97,7 +97,7 @@ router.post("/create", upload.single("image"), (req, res) => {
 // GET ALL CATEGORIES
 
 router.get("/", (req, res) => {
-  const sql = "SELECT * FROM categories ORDER BY id DESC";
+  const sql = "SELECT * FROM product_collection WHERE isdeleted = 0 ORDER BY id DESC";
 
   db.query(sql, (err, results) => {
     if (err) {
@@ -171,6 +171,30 @@ router.put("/update/:id", upload.single("image"), (req, res) => {
       message: "Server error",
       error: error.message,
     });
+  }
+});
+
+// DELETE CATEGORY (Soft Delete)
+router.delete("/delete/:id", (req, res) => {
+  try {
+    const id = req.params.id;
+    
+    // Updates isdeleted to 1 instead of permanently wiping the row
+    const sql = "UPDATE product_collection SET isdeleted = 1 WHERE id = ?";
+
+    db.query(sql, [id], (err, result) => {
+      if (err) {
+        return res.status(500).json({ message: "Database error", error: err });
+      }
+      
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      res.json({ message: "Category deleted successfully" });
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
