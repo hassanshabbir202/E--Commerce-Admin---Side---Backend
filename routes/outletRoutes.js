@@ -1,6 +1,10 @@
+// routes/outletRoutes.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db/db");
+
+// 1. IMPORT THE QUERIES DICTIONARY
+const { outletQueries } = require("../db/queries");
 
 // CREATE OUTLET
 router.post("/create", (req, res) => {
@@ -9,10 +13,6 @@ router.post("/create", (req, res) => {
     tax_registration_number, countryid, time_zoneid, currencyid, 
     languageid, samedaydelivery, nextdaydelivery, taxrate, isinclusive 
   } = req.body;
-
-  const sql = `INSERT INTO business_outlet_details 
-    (business_id, name, name_in_arabic, Email, Phone, Whatsapp, tax_registration_number, countryid, time_zoneid, currencyid, languageid, samedaydelivery, nextdaydelivery, taxrate, isinclusive) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     
   const values = [
     business_id || 1, name, name_in_arabic, Email, Phone, Whatsapp, 
@@ -20,7 +20,8 @@ router.post("/create", (req, res) => {
     languageid, samedaydelivery || 0, nextdaydelivery || 0, taxrate, isinclusive || 0
   ];
 
-  db.query(sql, values, (err, result) => {
+  // 2. USE THE DICTIONARY
+  db.query(outletQueries.create, values, (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     res.status(201).json({ message: "Outlet created", id: result.insertId });
   });
@@ -29,7 +30,9 @@ router.post("/create", (req, res) => {
 // GET ALL OUTLETS
 router.get("/", (req, res) => {
   const business_id = req.query.business_id || 1;
-  db.query("SELECT * FROM business_outlet_details WHERE business_id = ? ORDER BY id DESC", [business_id], (err, results) => {
+
+  // 2. USE THE DICTIONARY
+  db.query(outletQueries.getAll, [business_id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(results);
   });
@@ -42,12 +45,6 @@ router.put("/update/:id", (req, res) => {
     tax_registration_number, countryid, time_zoneid, currencyid, 
     languageid, samedaydelivery, nextdaydelivery, taxrate, isinclusive 
   } = req.body;
-
-  const sql = `UPDATE business_outlet_details SET 
-    name=?, name_in_arabic=?, Email=?, Phone=?, Whatsapp=?, 
-    tax_registration_number=?, countryid=?, time_zoneid=?, currencyid=?, 
-    languageid=?, samedaydelivery=?, nextdaydelivery=?, taxrate=?, isinclusive=? 
-    WHERE id=?`;
   
   const values = [
     name, name_in_arabic, Email, Phone, Whatsapp, tax_registration_number, 
@@ -55,15 +52,17 @@ router.put("/update/:id", (req, res) => {
     nextdaydelivery, taxrate, isinclusive, req.params.id
   ];
 
-  db.query(sql, values, (err) => {
+  // 2. USE THE DICTIONARY
+  db.query(outletQueries.update, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Outlet updated" });
   });
 });
 
-// DELETE OUTLET (Hard Delete - no isdeleted column)
+// DELETE OUTLET (Hard Delete)
 router.delete("/delete/:id", (req, res) => {
-  db.query("DELETE FROM business_outlet_details WHERE id = ?", [req.params.id], (err) => {
+  // 2. USE THE DICTIONARY
+  db.query(outletQueries.hardDelete, [req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Outlet permanently deleted" });
   });

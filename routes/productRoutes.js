@@ -1,15 +1,19 @@
+// routes/productRoutes.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db/db");
+
+// 1. IMPORT THE QUERIES DICTIONARY
+const { productQueries } = require("../db/queries");
 
 // CREATE PRODUCT
 router.post("/create", (req, res) => {
   const { name, shortdescription, longdescription, brandid, saleprice, Isaddon, isinventory, sku, costprice, sortorder, business_id } = req.body;
 
-  const sql = `INSERT INTO product (name, shortdescription, longdescription, brandid, saleprice, Isaddon, isinventory, sku, costprice, sortorder, business_id, createddatetime, isdeleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 0)`;
   const values = [name, shortdescription, longdescription, brandid, saleprice, Isaddon || 0, isinventory || 1, sku, costprice, sortorder || 0, business_id || 1];
 
-  db.query(sql, values, (err, result) => {
+  // 2. USE THE DICTIONARY
+  db.query(productQueries.create, values, (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     res.status(201).json({ message: "Product created", id: result.insertId });
   });
@@ -18,7 +22,9 @@ router.post("/create", (req, res) => {
 // GET ALL PRODUCTS
 router.get("/", (req, res) => {
   const business_id = req.query.business_id || 1;
-  db.query("SELECT * FROM product WHERE isdeleted = 0 AND business_id = ? ORDER BY sortorder ASC", [business_id], (err, results) => {
+  
+  // 2. USE THE DICTIONARY
+  db.query(productQueries.getAll, [business_id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(results);
   });
@@ -28,10 +34,10 @@ router.get("/", (req, res) => {
 router.put("/update/:id", (req, res) => {
   const { name, shortdescription, longdescription, brandid, saleprice, Isaddon, isinventory, sku, costprice, sortorder } = req.body;
   
-  const sql = `UPDATE product SET name=?, shortdescription=?, longdescription=?, brandid=?, saleprice=?, Isaddon=?, isinventory=?, sku=?, costprice=?, sortorder=?, altereddatetime=NOW() WHERE id=? AND isdeleted=0`;
   const values = [name, shortdescription, longdescription, brandid, saleprice, Isaddon, isinventory, sku, costprice, sortorder, req.params.id];
 
-  db.query(sql, values, (err) => {
+  // 2. USE THE DICTIONARY
+  db.query(productQueries.update, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Product updated" });
   });
@@ -39,7 +45,8 @@ router.put("/update/:id", (req, res) => {
 
 // DELETE PRODUCT
 router.delete("/delete/:id", (req, res) => {
-  db.query("UPDATE product SET isdeleted = 1, altereddatetime = NOW() WHERE id = ?", [req.params.id], (err) => {
+  // 2. USE THE DICTIONARY
+  db.query(productQueries.softDelete, [req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Product deleted" });
   });

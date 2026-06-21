@@ -1,9 +1,13 @@
+// routes/slideshowRoutes.js
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const db = require("../db/db");
+
+// 1. IMPORT THE QUERIES DICTIONARY
+const { slideshowQueries } = require("../db/queries");
 
 const uploadPath = "assets/images/slideshows/";
 if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
@@ -20,10 +24,10 @@ router.post("/create", upload.single("image"), (req, res) => {
   const { business_id, heading, subheading, button_text, button_link, issamewin, isactive, sorting } = req.body;
   const imagePath = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
-  const sql = `INSERT INTO theme_slide_show (business_id, heading, subheading, button_text, button_link, issamewin, isactive, sorting, created_datetime, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)`;
   const values = [business_id || 1, heading, subheading, button_text, button_link, issamewin || 0, isactive || 1, sorting || 0, imagePath];
 
-  db.query(sql, values, (err, result) => {
+  // 2. USE THE DICTIONARY
+  db.query(slideshowQueries.create, values, (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     res.status(201).json({ message: "Slide created", id: result.insertId });
   });
@@ -32,15 +36,18 @@ router.post("/create", upload.single("image"), (req, res) => {
 // GET ALL SLIDES
 router.get("/", (req, res) => {
   const business_id = req.query.business_id || 1;
-  db.query("SELECT * FROM theme_slide_show WHERE business_id = ? ORDER BY sorting ASC", [business_id], (err, results) => {
+
+  // 2. USE THE DICTIONARY
+  db.query(slideshowQueries.getAll, [business_id], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(results);
   });
 });
 
-// DELETE SLIDE (Hard Delete - no isdeleted column)
+// DELETE SLIDE (Hard Delete)
 router.delete("/delete/:id", (req, res) => {
-  db.query("DELETE FROM theme_slide_show WHERE id = ?", [req.params.id], (err) => {
+  // 2. USE THE DICTIONARY
+  db.query(slideshowQueries.hardDelete, [req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Slide permanently deleted" });
   });

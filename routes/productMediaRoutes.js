@@ -1,9 +1,13 @@
+// routes/productMediaRoutes.js
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const db = require("../db/db");
+
+// 1. IMPORT THE QUERIES DICTIONARY
+const { productMediaQueries } = require("../db/queries");
 
 const uploadPath = "assets/images/products/gallery/";
 if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
@@ -22,6 +26,7 @@ router.post("/create", upload.array("images", 5), (req, res) => {
 
   const currentTimestamp = Math.floor(Date.now() / 1000);
 
+  // Map the files into a nested array format required by MySQL for bulk inserts
   const values = req.files.map((file) => [
     productid, 
     file.filename,
@@ -31,9 +36,8 @@ router.post("/create", upload.array("images", 5), (req, res) => {
     business_id || 1
   ]);
 
-  const sql = `INSERT INTO product_media_details (productid, filename, filelocation, isdeleted, createddatetime, business_id) VALUES ?`;
-  
-  db.query(sql, [values], (err, result) => {
+  // 2. USE THE DICTIONARY
+  db.query(productMediaQueries.createBulk, [values], (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     res.status(201).json({ message: "Media added successfully", count: result.affectedRows });
   });
@@ -41,7 +45,8 @@ router.post("/create", upload.array("images", 5), (req, res) => {
 
 // GET MEDIA FOR SPECIFIC PRODUCT
 router.get("/:productid", (req, res) => {
-  db.query("SELECT * FROM product_media_details WHERE productid = ? AND isdeleted = 0", [req.params.productid], (err, results) => {
+  // 2. USE THE DICTIONARY
+  db.query(productMediaQueries.getByProductId, [req.params.productid], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(results);
   });
@@ -50,7 +55,9 @@ router.get("/:productid", (req, res) => {
 // DELETE MEDIA
 router.delete("/delete/:id", (req, res) => {
   const currentTimestamp = Math.floor(Date.now() / 1000);
-  db.query("UPDATE product_media_details SET isdeleted = 1, deleted_datetime = ? WHERE id = ?", [currentTimestamp, req.params.id], (err) => {
+  
+  // 2. USE THE DICTIONARY
+  db.query(productMediaQueries.softDelete, [currentTimestamp, req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Media deleted" });
   });

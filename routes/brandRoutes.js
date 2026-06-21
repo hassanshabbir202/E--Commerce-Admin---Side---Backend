@@ -1,9 +1,13 @@
+// routes/brandRoutes.js
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const db = require("../db/db");
+
+// 1. IMPORT THE QUERIES DICTIONARY
+const { brandQueries } = require("../db/queries");
 
 const uploadPath = "assets/images/brands/";
 if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
@@ -20,9 +24,8 @@ router.post("/create", upload.single("image"), (req, res) => {
   const { name } = req.body;
   const logoUrl = req.file ? req.file.path.replace(/\\/g, "/") : null;
 
-  const sql = `INSERT INTO brand_details (name, logo_url, created_datetime, isdeleted) VALUES (?, ?, NOW(), 0)`;
-  
-  db.query(sql, [name, logoUrl], (err, result) => {
+  // 2. USE THE DICTIONARY
+  db.query(brandQueries.create, [name, logoUrl], (err, result) => {
     if (err) return res.status(500).json({ error: err.message });
     res.status(201).json({ message: "Brand created", id: result.insertId });
   });
@@ -30,7 +33,8 @@ router.post("/create", upload.single("image"), (req, res) => {
 
 // GET ALL BRANDS
 router.get("/", (req, res) => {
-  db.query("SELECT * FROM brand_details WHERE isdeleted = 0 ORDER BY id DESC", (err, results) => {
+  // 2. USE THE DICTIONARY
+  db.query(brandQueries.getAll, (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(results);
   });
@@ -39,17 +43,22 @@ router.get("/", (req, res) => {
 // UPDATE BRAND
 router.put("/update/:id", upload.single("image"), (req, res) => {
   const { name } = req.body;
-  let sql = `UPDATE brand_details SET name=?`;
-  let values = [name];
+  const id = req.params.id;
 
+  let queryToRun;
+  let values;
+
+  // Determine if we are updating the image or just the text
   if (req.file) {
-    sql += `, logo_url=?`;
-    values.push(req.file.path.replace(/\\/g, "/"));
+    queryToRun = brandQueries.updateWithImage;
+    values = [name, req.file.path.replace(/\\/g, "/"), id];
+  } else {
+    queryToRun = brandQueries.updateWithoutImage;
+    values = [name, id];
   }
-  sql += ` WHERE id=? AND isdeleted=0`;
-  values.push(req.params.id);
 
-  db.query(sql, values, (err) => {
+  // 2. USE THE DICTIONARY
+  db.query(queryToRun, values, (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Brand updated" });
   });
@@ -57,7 +66,8 @@ router.put("/update/:id", upload.single("image"), (req, res) => {
 
 // DELETE BRAND
 router.delete("/delete/:id", (req, res) => {
-  db.query("UPDATE brand_details SET isdeleted = 1, deleted_datetime = NOW() WHERE id = ?", [req.params.id], (err) => {
+  // 2. USE THE DICTIONARY
+  db.query(brandQueries.softDelete, [req.params.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Brand deleted" });
   });
